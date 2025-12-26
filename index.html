@@ -1,22 +1,307 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NamixOS</title>
-
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
+<div id="os">
 
-  <div id="desktop">
-    <div class="icon" data-app="terminal">Terminale</div>
-    <div class="icon" data-app="files">File</div>
-    <div class="icon" data-app="notes">Note</div>
+  <!-- Splash / Intro -->
+  <div id="splash">
+    <div class="splash-content">
+      <div class="splash-title">NamixOS</div>
+      <div class="splash-powered">
+        Powered by <span class="splash-solen">SOLEN</span>
+      </div>
+      <div class="splash-beta">BETA Version</div>
+    </div>
   </div>
 
-  <script src="script.js"></script>
-  <script src="apps.js"></script>
+  <!-- Overlay nero -->
+  <div id="black-screen">
+    <div class="black-content">
+      <div class="black-title">NamixOS</div>
+      <div class="black-icon" id="black-icon">⏸</div>
+    </div>
+  </div>
+
+  <!-- Standby -->
+  <div id="standby-message">
+    <div class="standby-text" id="standby-text">
+      Namix is in standby. Tap the screen to wake up.
+    </div>
+  </div>
+
+  <!-- Desktop -->
+  <div id="desktop">
+
+    <div class="icon" data-window="win-notes" data-i18n-icon="notes">
+      <div class="icon-image">📝</div>
+      <div class="icon-label">Notes</div>
+    </div>
+
+    <div class="icon" data-window="win-browser" data-i18n-icon="browser">
+      <div class="icon-image">🌐</div>
+      <div class="icon-label">Browser</div>
+    </div>
+
+    <div class="icon" data-window="win-files" data-i18n-icon="files">
+      <div class="icon-image">📁</div>
+      <div class="icon-label">Files</div>
+    </div>
+
+    <div class="icon" data-window="win-music" data-i18n-icon="music">
+      <div class="icon-image">🎵</div>
+      <div class="icon-label">Music</div>
+    </div>
+
+    <div class="icon" data-window="win-terminal" data-i18n-icon="terminal">
+      <div class="icon-image">>_</div>
+      <div class="icon-label">Terminal</div>
+    </div>
+
+    <div class="icon" data-window="win-about" data-i18n-icon="about">
+      <div class="icon-image">💻</div>
+      <div class="icon-label">About OS</div>
+    </div>
+
+  </div>
+
+  <!-- Finestra Note -->
+  <div class="window" id="win-notes" data-app="notes">
+    <div class="window-titlebar">
+      <span class="window-title" data-i18n="win_notes_title">Notes</span>
+      <div class="window-buttons">
+        <button class="btn-minimize">−</button>
+        <button class="btn-fullscreen">⬜</button>
+        <button class="btn-close">×</button>
+      </div>
+    </div>
+    <div class="window-content">
+      <textarea class="notes-area"
+        data-i18n-placeholder="notes_placeholder"
+        placeholder="Write your notes here..."></textarea>
+    </div>
+  </div>
+
+  <!-- Finestra Browser -->
+  <div class="window" id="win-browser" data-app="browser">
+    <div class="window-titlebar">
+      <span class="window-title" data-i18n="win_browser_title">Mini Browser</span>
+      <div class="window-buttons">
+        <button class="btn-minimize">−</button>
+        <button class="btn-fullscreen">⬜</button>
+        <button class="btn-close">×</button>
+      </div>
+    </div>
+    <div class="window-content">
+      <input type="text" class="browser-bar"
+        data-i18n-placeholder="browser_placeholder"
+        placeholder="fake address… (no real navigation)" />
+      <div class="browser-view" data-i18n-html="browser_welcome">
+        <h3>Welcome to NamixOS</h3>
+        <p>This is a demo web OS running entirely in your browser.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finestra File Manager -->
+  <div class="window" id="win-files" data-app="files">
+    <div class="window-titlebar">
+      <span class="window-title" data-i18n="win_files_title">Files</span>
+      <div class="window-buttons">
+        <button class="btn-minimize">−</button>
+        <button class="btn-fullscreen">⬜</button>
+        <button class="btn-close">×</button>
+      </div>
+    </div>
+
+    <div class="window-content file-manager">
+      <div class="fm-sidebar">
+        <div class="fm-section-title" data-i18n="fm_quick_access">Quick access</div>
+        <button class="fm-nav-item" data-path="/home" data-i18n="fm_home">Home</button>
+        <button class="fm-nav-item" data-path="/home/Documents" data-i18n="fm_documents">Documents</button>
+        <button class="fm-nav-item" data-path="/home/Music" data-i18n="fm_music">Music</button>
+      </div>
+
+      <div class="fm-main">
+        <div class="fm-toolbar">
+          <span class="fm-path-label" data-i18n="fm_path">Path:</span>
+          <span class="fm-path" id="fm-path">/home</span>
+        </div>
+        <div class="fm-list" id="fm-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finestra Musica -->
+  <div class="window" id="win-music" data-app="music">
+    <div class="window-titlebar">
+      <span class="window-title" data-i18n="win_music_title">Music Player</span>
+      <div class="window-buttons">
+        <button class="btn-minimize">−</button>
+        <button class="btn-fullscreen">⬜</button>
+        <button class="btn-close">×</button>
+      </div>
+    </div>
+
+    <div class="window-content music-player">
+      <div class="music-info">
+        <div class="music-cover">🎶</div>
+        <div>
+          <div class="music-title">Demo Track</div>
+          <div class="music-artist">Virtual Artist</div>
+        </div>
+      </div>
+
+      <div class="music-controls">
+        <button class="btn-music">⏮</button>
+        <button class="btn-music btn-play">▶</button>
+        <button class="btn-music">⏭</button>
+      </div>
+
+      <div class="music-timeline">
+        <div class="music-progress">
+          <div class="music-progress-inner"></div>
+        </div>
+        <div class="music-time">
+          <span class="time-current">00:00</span>
+          <span class="time-total">03:30</span>
+        </div>
+      </div>
+
+      <p class="music-note" data-i18n="music_note">
+        This is a visual music player only (no real audio).
+      </p>
+    </div>
+  </div>
+
+  <!-- Finestra Terminale -->
+  <div class="window" id="win-terminal" data-app="terminal">
+    <div class="window-titlebar">
+      <span class="window-title" data-i18n="win_terminal_title">Terminal</span>
+      <div class="window-buttons">
+        <button class="btn-minimize">−</button>
+        <button class="btn-fullscreen">⬜</button>
+        <button class="btn-close">×</button>
+      </div>
+    </div>
+
+    <div class="window-content terminal">
+      <div class="terminal-output" id="terminal-output"></div>
+      <div class="terminal-input-row">
+        <span class="prompt" id="terminal-prompt">user@namix:~$</span>
+        <input type="text" class="terminal-input" id="terminal-input" autocomplete="off" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Finestra Info -->
+  <div class="window" id="win-about" data-app="about">
+    <div class="window-titlebar">
+      <span class="window-title" data-i18n="win_about_title">System Info</span>
+      <div class="window-buttons">
+        <button class="btn-minimize">−</button>
+        <button class="btn-fullscreen">⬜</button>
+        <button class="btn-close">×</button>
+      </div>
+    </div>
+
+    <div class="window-content about" data-i18n-html="about_content">
+      <h2>NamixOS</h2>
+      <p>Mini web operating system, running fully client‑side.</p>
+      <ul>
+        <li><strong>Windows:</strong> drag, minimize, fullscreen</li>
+        <li><strong>Apps:</strong> Notes, Browser, Files, Music, Terminal, Info</li>
+        <li><strong>Mobile:</strong> auto fullscreen, tap to open</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Finestra Impostazioni -->
+  <div class="window" id="win-settings" data-app="settings">
+    <div class="window-titlebar">
+      <span class="window-title" data-i18n="win_settings_title">Settings</span>
+      <div class="window-buttons">
+        <button class="btn-minimize">−</button>
+        <button class="btn-fullscreen">⬜</button>
+        <button class="btn-close">×</button>
+      </div>
+    </div>
+
+    <div class="window-content">
+      <h3 data-i18n="settings_theme_title">Theme</h3>
+      <div class="settings-row">
+        <button class="btn-theme" data-theme="dark" data-i18n="settings_theme_dark">Dark theme</button>
+        <button class="btn-theme" data-theme="light" data-i18n="settings_theme_light">Light theme</button>
+      </div>
+
+      <h3 style="margin-top:16px;" data-i18n="settings_language_title">Language</h3>
+      <div class="settings-row">
+        <button class="btn-lang" data-lang="en">English</button>
+        <button class="btn-lang" data-lang="it">Italiano</button>
+      </div>
+
+      <p style="margin-top:12px;font-size:12px;opacity:.8;" data-i18n="settings_mobile_note">
+        On phones windows are automatically fullscreen and opened with a single tap.
+      </p>
+    </div>
+  </div>
+
+  <!-- Dock -->
+  <div id="dock">
+    <button class="dock-item" data-window="win-browser">
+      🌐 <span data-i18n="dock_browser">Browser</span>
+    </button>
+    <button class="dock-item" data-window="win-files">
+      📁 <span data-i18n="dock_files">Files</span>
+    </button>
+    <button class="dock-item" data-window="win-terminal">
+      >_ <span data-i18n="dock_terminal">Terminal</span>
+    </button>
+  </div>
+
+  <!-- Taskbar -->
+  <div id="taskbar">
+    <div id="start-button">⊞</div>
+    <div id="taskbar-apps"></div>
+    <div id="clock"></div>
+  </div>
+
+  <!-- Start menu -->
+  <div id="start-menu">
+    <div class="start-title">NamixOS</div>
+
+    <div class="start-apps">
+      <button class="start-app" data-window="win-notes">📝 Notes</button>
+      <button class="start-app" data-window="win-browser">🌐 Browser</button>
+      <button class="start-app" data-window="win-files">📁 Files</button>
+      <button class="start-app" data-window="win-music">🎵 Music</button>
+      <button class="start-app" data-window="win-terminal">>_ Terminal</button>
+      <button class="start-app" data-window="win-about">💻 System Info</button>
+      <button class="start-app" data-window="win-settings">⚙️ Settings</button>
+    </div>
+
+    <div class="start-power-section">
+      <div class="start-power-title" data-i18n="power_title">Power</div>
+      <button class="start-power" data-action="standby">
+        ⏸ <span data-i18n="power_standby">Standby</span>
+      </button>
+      <button class="start-power" data-action="reboot">
+        🔄 <span data-i18n="power_reboot">Restart system</span>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Script -->
+<script src="apps.js" defer></script>
+<script src="script.js" defer></script>
+
 </body>
 </html>
