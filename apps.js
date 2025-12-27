@@ -1,296 +1,154 @@
-// ===== Mobile fullscreen auto =====
-function mobileMode() {
-  if (window.innerWidth <= 700) {
-    windows.forEach((win) => {
-      if (win.style.display !== "none") {
-        win.classList.add("fullscreen");
-      }
-    });
-  } else {
-    windows.forEach((win) => {
-      win.classList.remove("fullscreen");
-    });
-  }
-}
-mobileMode();
-window.addEventListener("resize", mobileMode);
+/* ===========================
+   FILE MANAGER
+=========================== */
 
-// ===== Terminale =====
-const terminalOutput = document.getElementById("terminal-output");
-const terminalInput = document.getElementById("terminal-input");
+const fileSystem = {
+  home: ["notes.txt", "todo.txt", "image.png"],
+  documents: ["project.docx", "resume.pdf"],
+  music: ["demo-track.mp3"]
+};
 
-let termDir = "/";
+const fmList = document.getElementById("fm-list");
+const fmPath = document.getElementById("fm-path");
 
-function terminalPrint(text) {
-  if (!terminalOutput) return;
-  const safe = text.replace(/\n/g, "<br />");
-  terminalOutput.innerHTML += safe + "<br />";
-  terminalOutput.scrollTop = terminalOutput.scrollHeight;
-}
+function loadFolder(path) {
+  fmPath.textContent = path;
+  fmList.innerHTML = "";
 
-function terminalClear() {
-  if (!terminalOutput) return;
-  terminalOutput.innerHTML = "";
-}
-
-if (terminalOutput) {
-  terminalPrint(getDict().terminal_welcome);
-}
-
-if (terminalInput) {
-  terminalInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      const cmd = terminalInput.value.trim();
-      const dict = getDict();
-      const promptBase = dict.terminal_prompt_base;
-      terminalPrint(`${promptBase}:${termDir}$ ${cmd}`);
-      handleCommand(cmd);
-      terminalInput.value = "";
-    }
+  fileSystem[path].forEach(item => {
+    const div = document.createElement("div");
+    div.className = "fm-item";
+    div.textContent = item;
+    fmList.appendChild(div);
   });
 }
 
-function handleCommand(cmd) {
-  const dict = getDict();
-  if (!cmd) return;
+document.querySelectorAll(".fm-nav-item").forEach(btn => {
+  btn.addEventListener("click", () => {
+    loadFolder(btn.dataset.path);
+  });
+});
 
-  const parts = cmd.split(" ");
+// Default folder
+loadFolder("home");
+
+
+/* ===========================
+   TERMINAL
+=========================== */
+
+const termOutput = document.getElementById("terminal-output");
+const termInput = document.querySelector(".terminal-input");
+
+function termPrint(text) {
+  termOutput.innerHTML += text + "\n";
+  termOutput.scrollTop = termOutput.scrollHeight;
+}
+
+function runCommand(cmd) {
+  const parts = cmd.trim().split(" ");
   const base = parts[0];
-  const arg = parts.slice(1).join(" ");
 
   switch (base) {
     case "help":
-      terminalPrint(dict.terminal_help);
+      termPrint("Available commands:\nhelp\nls\ncd <folder>\nopen <app>\nclear\nabout");
       break;
-    case "about":
-      terminalPrint(dict.terminal_about);
-      break;
-    case "clear":
-      terminalClear();
-      break;
-    case "apps":
-      terminalPrint(dict.terminal_apps);
-      break;
+
     case "ls":
-      handleLs();
+      termPrint("home  documents  music");
       break;
+
     case "cd":
-      handleCd(arg);
-      break;
-    case "open":
-      handleOpenApp(arg);
-      break;
-    case "lang":
-      if (arg === "en" || arg === "it") {
-        currentLang = arg;
-        applyTranslations();
-        terminalPrint(dict.terminal_lang_set + " " + arg);
+      if (!parts[1]) {
+        termPrint("Usage: cd <folder>");
+      } else if (fileSystem[parts[1]]) {
+        termPrint("Moved to " + parts[1]);
       } else {
-        terminalPrint("lang en | it");
+        termPrint("Folder not found");
       }
       break;
-    case "date":
-      terminalPrint(new Date().toString());
+
+    case "open":
+      if (!parts[1]) {
+        termPrint("Usage: open <app>");
+      } else {
+        const id = "win-" + parts[1];
+        if (document.getElementById(id)) {
+          openWindow(id);
+          termPrint("Opening " + parts[1] + "...");
+        } else {
+          termPrint("App not found");
+        }
+      }
       break;
+
+    case "clear":
+      termOutput.innerHTML = "";
+      break;
+
+    case "about":
+      termPrint("NamixOS Terminal\nMini web OS demo.");
+      break;
+
     default:
-      terminalPrint(`${dict.terminal_unknown} ${base}`);
-      break;
+      termPrint("Unknown command: " + base);
   }
 }
 
-function handleLs() {
-  const dict = getDict();
-  if (termDir === "/") {
-    terminalPrint(dict.terminal_ls_root);
-  } else if (termDir === "/home") {
-    terminalPrint(dict.terminal_ls_home);
-  } else if (termDir === "/home/Documents") {
-    terminalPrint(dict.terminal_ls_docs);
-  } else if (termDir === "/home/Music") {
-    terminalPrint(dict.terminal_ls_music);
-  } else {
-    terminalPrint(".");
+termInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const cmd = termInput.value;
+    termPrint("$ " + cmd);
+    runCommand(cmd);
+    termInput.value = "";
   }
-}
-
-function handleCd(path) {
-  const dict = getDict();
-  if (!path) return;
-  const validDirs = ["/", "/home", "/home/Documents", "/home/Music"];
-  if (validDirs.includes(path)) {
-    termDir = path;
-    terminalPrint(`${dict.terminal_cd_ok} ${path}`);
-  } else {
-    terminalPrint(`${dict.terminal_cd_fail} ${path}`);
-  }
-}
-
-function handleOpenApp(name) {
-  const dict = getDict();
-  const map = {
-    notes: "win-notes",
-    browser: "win-browser",
-    files: "win-files",
-    music: "win-music",
-    terminal: "win-terminal",
-    about: "win-about",
-    settings: "win-settings"
-  };
-  const id = map[name];
-  if (!id) {
-    terminalPrint(`${dict.terminal_open_fail} ${name}`);
-    return;
-  }
-  openWindow(id);
-}
-
-// ===== File Manager =====
-const fsStructure = {
-  "/home": [
-    { name: "Documents", type: "folder", path: "/home/Documents" },
-    { name: "Music", type: "folder", path: "/home/Music" },
-    { name: "todo.txt", type: "file" },
-    { name: "ideas.txt", type: "file" }
-  ],
-  "/home/Documents": [
-    { name: "spec.md", type: "file" },
-    { name: "notes.txt", type: "file" }
-  ],
-  "/home/Music": [
-    { name: "track1.mp3", type: "file" },
-    { name: "track2.mp3", type: "file" }
-  ]
-};
-
-let fmCurrentPath = "/home";
-const fmPathEl = document.getElementById("fm-path");
-const fmListEl = document.getElementById("fm-list");
-const fmNavItems = document.querySelectorAll(".fm-nav-item");
-
-function renderFileManager() {
-  if (!fmPathEl || !fmListEl) return;
-  fmPathEl.textContent = fmCurrentPath;
-  fmListEl.innerHTML = "";
-
-  const entries = fsStructure[fmCurrentPath] || [];
-  entries.forEach((entry) => {
-    const row = document.createElement("div");
-    row.className = "fm-row";
-    row.dataset.type = entry.type;
-    row.dataset.name = entry.name;
-    if (entry.path) row.dataset.path = entry.path;
-
-    const icon = document.createElement("div");
-    icon.className = "fm-row-icon";
-    icon.textContent = entry.type === "folder" ? "📁" : "📄";
-
-    const name = document.createElement("div");
-    name.className = "fm-row-name";
-    name.textContent = entry.name;
-
-    const type = document.createElement("div");
-    type.className = "fm-row-type";
-    type.textContent = entry.type;
-
-    row.appendChild(icon);
-    row.appendChild(name);
-    row.appendChild(type);
-
-    row.addEventListener("dblclick", () => {
-      if (entry.type === "folder" && entry.path) {
-        fmCurrentPath = entry.path;
-        renderFileManager();
-      }
-    });
-
-    fmListEl.appendChild(row);
-  });
-}
-
-fmNavItems.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const path = btn.dataset.path;
-    if (path) {
-      fmCurrentPath = path;
-      renderFileManager();
-    }
-  });
 });
 
-// ===== Standby & Reboot =====
-function showBlackSequence(iconSymbol, duration = 3000, callback) {
-  if (!blackScreen || !blackIcon) {
-    if (callback) callback();
-    return;
+
+/* ===========================
+   MUSIC PLAYER
+=========================== */
+
+let musicPlaying = false;
+let musicProgress = 0;
+const progressBar = document.querySelector(".music-progress-bar");
+const timeCurrent = document.querySelector(".time-current");
+const timeTotal = document.querySelector(".time-total");
+
+document.querySelector(".btn-play").addEventListener("click", () => {
+  musicPlaying = !musicPlaying;
+});
+
+setInterval(() => {
+  if (!musicPlaying) return;
+
+  musicProgress += 0.5; // seconds
+  const total = 210; // 3:30
+
+  if (musicProgress >= total) {
+    musicProgress = 0;
+    musicPlaying = false;
   }
-  blackIcon.textContent = iconSymbol;
-  blackScreen.classList.add("visible");
-  setTimeout(() => {
-    blackScreen.classList.remove("visible");
-    setTimeout(() => {
-      if (callback) callback();
-    }, 400);
-  }, duration);
-}
 
-function enterStandby() {
-  const dict = getDict();
-  const ok = window.confirm(dict.confirm_standby);
-  if (!ok) return;
+  const percent = (musicProgress / total) * 100;
+  progressBar.style.width = percent + "%";
 
-  startMenu.classList.remove("open");
-  startButton.classList.remove("active");
-  closeAllWindows();
+  const m = Math.floor(musicProgress / 60).toString().padStart(2, "0");
+  const s = Math.floor(musicProgress % 60).toString().padStart(2, "0");
+  timeCurrent.textContent = `${m}:${s}`;
+}, 500);
 
-  showBlackSequence("⏸", 3000, () => {
-    setTimeout(() => {
-      standbyOverlay.classList.add("visible");
-      isInStandby = true;
-    }, 0);
-  });
-}
 
-function wakeFromStandby() {
-  if (!isInStandby) return;
-  isInStandby = false;
-  standbyOverlay.classList.remove("visible");
+/* ===========================
+   BROWSER (STATIC)
+=========================== */
 
-  showBlackSequence("⏸", 3000, () => {
-    playSplash(() => {});
-  });
-}
-
-standbyOverlay.addEventListener("click", wakeFromStandby);
-standbyOverlay.addEventListener("touchstart", (e) => {
-  e.preventDefault();
-  wakeFromStandby();
+document.querySelector(".browser-url").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const view = document.querySelector(".browser-view");
+    view.innerHTML = `
+      <h3>Navigation Disabled</h3>
+      <p>This is a demo browser. No real navigation is available.</p>
+    `;
+  }
 });
-
-function enterReboot() {
-  const dict = getDict();
-  const ok = window.confirm(dict.confirm_reboot);
-  if (!ok) return;
-
-  startMenu.classList.remove("open");
-  startButton.classList.remove("active");
-  closeAllWindows();
-
-  showBlackSequence("🔄", 3000, () => {
-    setTimeout(() => {
-      playSplash(() => {});
-    }, 3000);
-  });
-}
-
-startPowerButtons.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const action = btn.dataset.action;
-    if (action === "standby") enterStandby();
-    if (action === "reboot") enterReboot();
-  });
-});
-
-// ===== Init =====
-applyTranslations();
-renderFileManager();
-playSplash(() => {});
