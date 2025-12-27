@@ -29,7 +29,6 @@ document.querySelectorAll(".fm-nav-item").forEach(btn => {
   });
 });
 
-// Default folder
 loadFolder("home");
 
 
@@ -51,7 +50,7 @@ function runCommand(cmd) {
 
   switch (base) {
     case "help":
-      termPrint("Available commands:\nhelp\nls\ncd <folder>\nopen <app>\nclear\nabout");
+      termPrint("Commands:\nhelp\nls\ncd <folder>\nopen <app>\nclear\nabout");
       break;
 
     case "ls":
@@ -59,26 +58,19 @@ function runCommand(cmd) {
       break;
 
     case "cd":
-      if (!parts[1]) {
-        termPrint("Usage: cd <folder>");
-      } else if (fileSystem[parts[1]]) {
-        termPrint("Moved to " + parts[1]);
-      } else {
-        termPrint("Folder not found");
-      }
+      if (!parts[1]) termPrint("Usage: cd <folder>");
+      else if (fileSystem[parts[1]]) termPrint("Moved to " + parts[1]);
+      else termPrint("Folder not found");
       break;
 
     case "open":
-      if (!parts[1]) {
-        termPrint("Usage: open <app>");
-      } else {
+      if (!parts[1]) termPrint("Usage: open <app>");
+      else {
         const id = "win-" + parts[1];
         if (document.getElementById(id)) {
           openWindow(id);
           termPrint("Opening " + parts[1] + "...");
-        } else {
-          termPrint("App not found");
-        }
+        } else termPrint("App not found");
       }
       break;
 
@@ -87,7 +79,7 @@ function runCommand(cmd) {
       break;
 
     case "about":
-      termPrint("NamixOS Terminal\nMini web OS demo.");
+      termPrint("NamixOS Terminal\nPowered by SOLEN.");
       break;
 
     default:
@@ -113,7 +105,6 @@ let musicPlaying = false;
 let musicProgress = 0;
 const progressBar = document.querySelector(".music-progress-bar");
 const timeCurrent = document.querySelector(".time-current");
-const timeTotal = document.querySelector(".time-total");
 
 document.querySelector(".btn-play").addEventListener("click", () => {
   musicPlaying = !musicPlaying;
@@ -122,8 +113,8 @@ document.querySelector(".btn-play").addEventListener("click", () => {
 setInterval(() => {
   if (!musicPlaying) return;
 
-  musicProgress += 0.5; // seconds
-  const total = 210; // 3:30
+  musicProgress += 0.5;
+  const total = 210;
 
   if (musicProgress >= total) {
     musicProgress = 0;
@@ -140,7 +131,7 @@ setInterval(() => {
 
 
 /* ===========================
-   BROWSER (STATIC)
+   BROWSER
 =========================== */
 
 document.querySelector(".browser-url").addEventListener("keydown", e => {
