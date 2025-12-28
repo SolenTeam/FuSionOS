@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NamixOS</title>
-  <link rel="stylesheet" href="style.css?v=30" />
+  <link rel="stylesheet" href="style.css?v=1" />
 </head>
 
 <body>
@@ -40,37 +40,37 @@
     <div id="desktop">
 
       <!-- Notes -->
-      <div class="icon" data-window="win-notes">
+      <div class="icon" data-window="win-notes" data-app-id="notes">
         <div class="icon-image">📝</div>
         <div class="icon-label">Notes</div>
       </div>
 
-      <!-- Browser (vero) -->
-      <div class="icon" data-window="win-browser">
+      <!-- Namix Search (browser) -->
+      <div class="icon" data-window="win-browser" data-app-id="browser">
         <div class="icon-image">🌐</div>
-        <div class="icon-label">Browser</div>
+        <div class="icon-label">Namix Search</div>
       </div>
 
       <!-- Files -->
-      <div class="icon" data-window="win-files">
+      <div class="icon" data-window="win-files" data-app-id="files">
         <div class="icon-image">🗂️</div>
         <div class="icon-label">Files</div>
-     div>
+      </div>
 
       <!-- Terminal -->
-      <div class="icon" data-window="win-terminal">
+      <div class="icon" data-window="win-terminal" data-app-id="terminal">
         <div class="icon-image">&gt;_</div>
         <div class="icon-label">Terminal</div>
       </div>
 
       <!-- About -->
-      <div class="icon" data-window="win-about">
-        <div class="icon-image">OS</div>
+      <div class="icon" data-window="win-about" data-app-id="about">
+        <div class="icon-image">🖥️</div>
         <div class="icon-label">About</div>
       </div>
 
       <!-- Settings -->
-      <div class="icon" data-window="win-settings">
+      <div class="icon" data-window="win-settings" data-app-id="settings">
         <div class="icon-image">⚙️</div>
         <div class="icon-label">Settings</div>
       </div>
@@ -93,7 +93,7 @@
 
     <!-- Taskbar -->
     <div id="taskbar">
-      <div id="start-button">🪟</div>
+      <div id="start-button">🔌</div>
       <div id="taskbar-apps"></div>
       <div id="clock"></div>
     </div>
@@ -107,7 +107,7 @@
         <button class="start-app" data-window="win-files" data-app-id="files">🗂️</button>
         <button class="start-app" data-window="win-terminal" data-app-id="terminal">&gt;_</button>
         <button class="start-app" data-window="win-notes" data-app-id="notes">📝</button>
-        <button class="start-app" data-window="win-about" data-app-id="about">OS</button>
+        <button class="start-app" data-window="win-about" data-app-id="about">🖥️</button>
         <button class="start-app" data-window="win-settings" data-app-id="settings">⚙️</button>
       </div>
 
@@ -120,9 +120,18 @@
 
     <!-- Context menu (unico, riusato ovunque) -->
     <div id="context-menu">
-      <button class="ctx-btn" data-action="open">▶️</button>
-      <button class="ctx-btn" data-action="hide">➖</button>
-      <button class="ctx-btn" data-action="close">✖️</button>
+      <button class="ctx-btn" data-action="open">
+        <span class="ctx-icon">▶️</span>
+        <span class="ctx-text">Open</span>
+      </button>
+      <button class="ctx-btn" data-action="hide">
+        <span class="ctx-icon">➖</span>
+        <span class="ctx-text">Hide</span>
+      </button>
+      <button class="ctx-btn" data-action="close">
+        <span class="ctx-icon">✖️</span>
+        <span class="ctx-text">Close</span>
+      </button>
     </div>
 
     <!-- WINDOWS -->
@@ -142,10 +151,10 @@
       </div>
     </div>
 
-    <!-- Browser (DuckDuckGo search) -->
+    <!-- Namix Search -->
     <div class="window" id="win-browser" data-app-id="browser">
       <div class="window-titlebar">
-        <span class="window-title">Browser</span>
+        <span class="window-title">Namix Search</span>
         <div class="window-buttons">
           <button class="btn-minimize">_</button>
           <button class="btn-fullscreen">□</button>
@@ -154,9 +163,9 @@
       </div>
       <div class="window-content browser">
         <input type="text" class="browser-url"
-               placeholder="Type a search and press Enter (DuckDuckGo API)" />
+               placeholder="Type a search and press Enter (DuckDuckGo)" />
         <div class="browser-view">
-          <h3>Welcome to NamixOS</h3>
+          <h3>Welcome to Namix Search</h3>
           <p>Use the bar above to search the web using DuckDuckGo Instant Answers.</p>
         </div>
       </div>
@@ -219,7 +228,8 @@
       </div>
       <div class="window-content">
         <h2>NamixOS</h2>
-        <p>Demo web OS.</p>
+        <p>Experimental web-based OS interface.</p>
+        <p>Created by SwaerkhFromSRGP.</p>
         <p>Powered by SOLEN.</p>
       </div>
     </div>
@@ -238,7 +248,7 @@
       <div class="window-content settings">
         <div class="settings-sidebar">
           <button class="settings-tab" data-tab="lang">Language</button>
-          <button class="settings-tab" data-tab="general">Settings</button>
+          <button class="settings-tab" data-tab="general">General</button>
           <button class="settings-tab" data-tab="wallpapers">Wallpapers</button>
         </div>
 
@@ -265,7 +275,7 @@
 
   </div>
 
-  <script src="apps.js?v=30" defer></script>
-  <script src="script.js?v=30" defer></script>
+  <script src="apps.js?v=1" defer></script>
+  <script src="script.js?v=1" defer></script>
 </body>
 </html>
