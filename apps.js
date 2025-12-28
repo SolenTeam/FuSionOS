@@ -100,19 +100,71 @@ if (termInput && termOutput) {
 }
 
 /* ===========================
-   BROWSER
+   BROWSER WITH DUCKDUCKGO SEARCH
 =========================== */
 
 const browserUrl = document.querySelector(".browser-url");
+const browserView = document.querySelector(".browser-view");
+
+async function performSearch(query) {
+  if (!browserView) return;
+  browserView.innerHTML = `<p>Searching for "<b>${query}</b>"...</p>`;
+
+  try {
+    const res = await fetch(
+      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`
+    );
+    const data = await res.json();
+
+    if (!data.Abstract && (!data.RelatedTopics || data.RelatedTopics.length === 0)) {
+      browserView.innerHTML = `
+        <h3>No results found</h3>
+        <p>Try another search.</p>
+      `;
+      return;
+    }
+
+    let html = "";
+
+    if (data.Heading) {
+      html += `<h2>${data.Heading}</h2>`;
+    }
+
+    if (data.Abstract) {
+      html += `<p>${data.Abstract}</p>`;
+    }
+
+    if (data.AbstractURL) {
+      html += `<p><a href="${data.AbstractURL}" target="_blank">Open source</a></p>`;
+    }
+
+    if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+      html += `<h3>Related</h3><ul>`;
+      data.RelatedTopics.slice(0, 5).forEach(item => {
+        if (item.Text && item.FirstURL) {
+          html += `<li><a href="${item.FirstURL}" target="_blank">${item.Text}</a></li>`;
+        }
+      });
+      html += `</ul>`;
+    }
+
+    browserView.innerHTML = html;
+
+  } catch (err) {
+    browserView.innerHTML = `
+      <h3>Error</h3>
+      <p>Unable to fetch results.</p>
+    `;
+  }
+}
+
 if (browserUrl) {
   browserUrl.addEventListener("keydown", e => {
     if (e.key === "Enter") {
-      const view = document.querySelector(".browser-view");
-      if (!view) return;
-      view.innerHTML = `
-        <h3>Navigation disabled</h3>
-        <p>This is a demo browser. No real navigation is available.</p>
-      `;
+      const query = browserUrl.value.trim();
+      if (query.length > 0) {
+        performSearch(query);
+      }
     }
   });
 }
@@ -132,176 +184,116 @@ tabs.forEach(tab => {
   });
 });
 
-// default page
 const defaultPage = document.getElementById("settings-lang");
 if (defaultPage) defaultPage.classList.add("active");
 
 /* ===========================
-   WALLPAPERS
+   WALLPAPERS (5 CSS + 3 IMAGES)
 =========================== */
 
 const wallpapers = [
-  "wallpapers/wall1.jpg",
-  "wallpapers/wall2.jpg",
-  "wallpapers/wall3.jpg",
-  "wallpapers/wall4.jpg",
-  "wallpapers/wall5.jpg"
+  {
+    type: "css",
+    name: "Deep Space Gradient",
+    value: "radial-gradient(circle at top, #3b4cca 0%, #050517 40%, #010108 100%)"
+  },
+  {
+    type: "css",
+    name: "Violet Neon Grid",
+    value: "linear-gradient(135deg, #1a002b 0%, #4a148c 40%, #000000 100%)"
+  },
+  {
+    type: "css",
+    name: "Green Cyber Glow",
+    value: "radial-gradient(circle at center, #00ff9d 0%, #003320 30%, #000000 100%)"
+  },
+  {
+    type: "css",
+    name: "Dark Minimal",
+    value: "linear-gradient(135deg, #0b0b0b 0%, #151515 40%, #050505 100%)"
+  },
+  {
+    type: "css",
+    name: "SOLEN Rainbow",
+    value: "linear-gradient(135deg, red, orange, yellow, green, cyan, blue, violet)"
+  },
+  {
+    type: "image",
+    name: "Abstract Mountains",
+    value: "wallpapers/wall6.jpg"
+  },
+  {
+    type: "image",
+    name: "Blurred City Lights",
+    value: "wallpapers/wall7.jpg"
+  },
+  {
+    type: "image",
+    name: "Minimal Shapes",
+    value: "wallpapers/wall8.jpg"
+  }
 ];
 
 const grid = document.getElementById("wallpaper-grid");
-const desktop = document.getElementById("desktop");
+
+function saveWallpaper(wp) {
+  localStorage.setItem("namixos_wallpaper", JSON.stringify(wp));
+}
+
+function applyWallpaper(wp) {
+  const desktopEl = document.getElementById("desktop");
+  if (!desktopEl) return;
+
+  if (wp.type === "css") {
+    desktopEl.style.background = wp.value;
+  } else {
+    desktopEl.style.background = `url(${wp.value}) center/cover no-repeat`;
+  }
+}
+
+function markSelectedThumb(selectedIndex) {
+  const thumbs = document.querySelectorAll(".wallpaper-thumb");
+  thumbs.forEach((t, i) => {
+    if (i === selectedIndex) t.classList.add("selected");
+    else t.classList.remove("selected");
+  });
+}
 
 if (grid && desktop) {
-  wallpapers.forEach(src => {
+  wallpapers.forEach((wp, index) => {
     const div = document.createElement("div");
     div.className = "wallpaper-thumb";
-    div.style.backgroundImage = `url(${src})`;
+    div.title = wp.name;
+
+    if (wp.type === "css") {
+      div.style.background = wp.value;
+    } else {
+      div.style.backgroundImage = `url(${wp.value})`;
+    }
 
     div.addEventListener("click", () => {
-      desktop.style.background = `url(${src}) center/cover no-repeat`;
+      applyWallpaper(wp);
+      saveWallpaper(wp);
+      markSelectedThumb(index);
     });
 
     grid.appendChild(div);
   });
-}
 
-/* ===========================
-   NOTES APP
-=========================== */
-
-let notes = [];
-let activeNoteId = null;
-
-const notesList = document.getElementById("notes-list");
-const noteTitleInput = document.getElementById("note-title");
-const noteBodyInput = document.getElementById("note-body");
-const btnNewNote = document.getElementById("btn-new-note");
-const btnDeleteNote = document.getElementById("btn-delete-note");
-const btnDownloadNote = document.getElementById("btn-download-note");
-
-function renderNotesList() {
-  if (!notesList) return;
-  notesList.innerHTML = "";
-  notes.forEach(note => {
-    const li = document.createElement("li");
-    li.textContent = note.title || "Untitled";
-    li.dataset.id = note.id;
-    if (note.id === activeNoteId) li.classList.add("active");
-    li.addEventListener("click", () => {
-      saveActiveNote();
-      setActiveNote(note.id);
-    });
-    notesList.appendChild(li);
-  });
-}
-
-function setActiveNote(id) {
-  activeNoteId = id;
-  const note = notes.find(n => n.id === id);
-  if (!note) return;
-  if (noteTitleInput) noteTitleInput.value = note.title;
-  if (noteBodyInput) noteBodyInput.value = note.body;
-  renderNotesList();
-}
-
-function saveActiveNote() {
-  if (!activeNoteId) return;
-  const note = notes.find(n => n.id === activeNoteId);
-  if (!note) return;
-  note.title = noteTitleInput ? noteTitleInput.value : note.title;
-  note.body = noteBodyInput ? noteBodyInput.value : note.body;
-}
-
-function createNewNote() {
-  saveActiveNote();
-  const id = "note-" + Date.now();
-  const newNote = {
-    id,
-    title: "New note",
-    body: ""
-  };
-  notes.unshift(newNote);
-  activeNoteId = id;
-  renderNotesList();
-  if (noteTitleInput) noteTitleInput.value = newNote.title;
-  if (noteBodyInput) noteBodyInput.value = newNote.body;
-}
-
-function deleteActiveNote() {
-  if (!activeNoteId) return;
-  notes = notes.filter(n => n.id !== activeNoteId);
-  activeNoteId = notes.length ? notes[0].id : null;
-  if (activeNoteId) {
-    const note = notes[0];
-    if (noteTitleInput) noteTitleInput.value = note.title;
-    if (noteBodyInput) noteBodyInput.value = note.body;
+  // applica selezione visuale se esiste un wallpaper salvato
+  const saved = localStorage.getItem("namixos_wallpaper");
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      const idx = wallpapers.findIndex(w =>
+        w.type === data.type && w.value === data.value
+      );
+      if (idx !== -1) {
+        markSelectedThumb(idx);
+      }
+    } catch (e) {}
   } else {
-    if (noteTitleInput) noteTitleInput.value = "";
-    if (noteBodyInput) noteBodyInput.value = "";
+    // se non c'è nulla salvato, seleziona il primo (default)
+    markSelectedThumb(0);
   }
-  renderNotesList();
-}
-
-function downloadActiveNote() {
-  const note = notes.find(n => n.id === activeNoteId);
-  if (!note) return;
-
-  const content = note.title + "\n\n" + note.body;
-  const blob = new Blob([content], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  const safeTitle = note.title || "note";
-  a.download = safeTitle.replace(/[^a-z0-9_\-]/gi, "_") + ".txt";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-if (btnNewNote) {
-  btnNewNote.addEventListener("click", createNewNote);
-}
-
-if (btnDeleteNote) {
-  btnDeleteNote.addEventListener("click", deleteActiveNote);
-}
-
-if (btnDownloadNote) {
-  btnDownloadNote.addEventListener("click", () => {
-    saveActiveNote();
-    downloadActiveNote();
-  });
-}
-
-if (noteTitleInput) {
-  noteTitleInput.addEventListener("input", () => {
-    if (!activeNoteId) return;
-    const note = notes.find(n => n.id === activeNoteId);
-    if (!note) return;
-    note.title = noteTitleInput.value;
-    renderNotesList();
-  });
-}
-
-if (noteBodyInput) {
-  noteBodyInput.addEventListener("input", () => {
-    if (!activeNoteId) return;
-    const note = notes.find(n => n.id === activeNoteId);
-    if (!note) return;
-    note.body = noteBodyInput.value;
-  });
-}
-
-// init with one default note
-if (notesList && noteTitleInput && noteBodyInput) {
-  notes.push({
-    id: "note-1",
-    title: "Welcome",
-    body: "This is your first note in NamixOS."
-  });
-  activeNoteId = "note-1";
-  renderNotesList();
-  noteTitleInput.value = notes[0].title;
-  noteBodyInput.value = notes[0].body;
 }
