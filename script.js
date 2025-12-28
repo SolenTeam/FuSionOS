@@ -9,20 +9,48 @@ const startButton = document.getElementById("start-button");
 const startMenu = document.getElementById("start-menu");
 const startApps = document.querySelectorAll(".start-app");
 const startPowerButtons = document.querySelectorAll(".start-power");
-const dockItems = document.querySelectorAll(".dock-item");
-const dockRecent = document.getElementById("dock-recent");
-const dockDivider = document.getElementById("dock-divider");
 const splash = document.getElementById("splash");
 const blackScreen = document.getElementById("black-screen");
 const blackIcon = document.getElementById("black-icon");
 const standbyOverlay = document.getElementById("standby-message");
+const desktop = document.getElementById("desktop");
+
+/* Dock */
+const dockMain = document.querySelector(".dock-main");
+const dockRecent = document.getElementById("dock-recent");
+const dockDivider = document.getElementById("dock-divider");
+const dockItems = document.querySelectorAll(".dock-item");
+
+/* Context menu */
 const contextMenu = document.getElementById("context-menu");
-const ctxItems = document.querySelectorAll(".ctx-item");
+const ctxButtons = document.querySelectorAll(".ctx-btn");
 
 let zIndexCounter = 500;
 let isInStandby = false;
-let recentApps = []; // track up to 2 recent app IDs
-let ctxTargetWindowId = null;
+
+/* Stato app: open/hidden per recent section */
+const appState = {}; // { appId: { open: bool, hidden: bool } }
+const recentApps = []; // max 2 appId
+
+/* Contesto corrente per context menu */
+let ctxTarget = null; // { type, appId, windowId }
+
+/* ===========================
+   UTILS
+=========================== */
+function getWindowByAppId(appId) {
+  return document.querySelector(`.window[data-app-id="${appId}"]`);
+}
+
+function getAppIdFromWindow(win) {
+  return win.dataset.appId || null;
+}
+
+function ensureAppState(appId) {
+  if (!appState[appId]) {
+    appState[appId] = { open: false, hidden: false };
+  }
+}
 
 /* ===========================
    WINDOW MANAGEMENT
@@ -30,6 +58,14 @@ let ctxTargetWindowId = null;
 function openWindow(id) {
   const win = document.getElementById(id);
   if (!win) return;
+
+  const appId = getAppIdFromWindow(win);
+  if (appId) {
+    ensureAppState(appId);
+    appState[appId].open = true;
+    appState[appId].hidden = false;
+    addRecentApp(appId);
+  }
 
   win.style.display = "flex";
   focusWindow(win);
@@ -39,18 +75,36 @@ function openWindow(id) {
   }
 
   addToTaskbar(id);
-  updateRecentApps(id);
+  renderDockRecent();
 }
 
 function closeWindow(win) {
+  const appId = getAppIdFromWindow(win);
   win.style.display = "none";
+
+  if (appId) {
+    ensureAppState(appId);
+    appState[appId].open = false;
+    appState[appId].hidden = false;
+    removeFromRecent(appId);
+  }
+
   removeFromTaskbar(win.id);
-  removeFromRecent(win.id);
-  updateDockRecent();
+  renderDockRecent();
 }
 
 function minimizeWindow(win) {
+  const appId = getAppIdFromWindow(win);
   win.style.display = "none";
+
+  if (appId) {
+    ensureAppState(appId);
+    appState[appId].open = true;
+    appState[appId].hidden = true;
+    addRecentApp(appId);
+  }
+
+  renderDockRecent();
 }
 
 function focusWindow(win) {
@@ -66,19 +120,26 @@ function focusWindow(win) {
 function addToTaskbar(id) {
   if (document.querySelector(`.taskbar-item[data-window="${id}"]`)) return;
 
+  const win = document.getElementById(id);
+  const appId = getAppIdFromWindow(win) || id.replace("win-", "");
+
   const item = document.createElement("div");
   item.className = "taskbar-item";
   item.dataset.window = id;
-  item.textContent = id.replace("win-", "");
+  item.dataset.appId = appId;
+  item.textContent = appId;
   item.addEventListener("click", () => {
-    const win = document.getElementById(id);
-    if (!win) return;
-    if (win.style.display === "none" || win.style.display === "") {
+    const w = document.getElementById(id);
+    if (!w) return;
+    if (w.style.display === "none" || w.style.display === "") {
       openWindow(id);
     } else {
-      focusWindow(win);
+      focusWindow(w);
     }
   });
+
+  attachContextMenuHandlers(item, { type: "taskbar", appId, windowId: id });
+
   taskbar.appendChild(item);
 }
 
@@ -88,22 +149,33 @@ function removeFromTaskbar(id) {
 }
 
 /* ===========================
-   RECENT APPS IN DOCK
+   DOCK RECENT APPS
 =========================== */
-function updateRecentApps(id) {
-  // don't track browser/files/terminal separately if they are already in main dock, but user asked: separate “used apps”
-  if (!recentApps.includes(id)) {
-    recentApps.unshift(id);
-    if (recentApps.length > 2) recentApps.pop();
+function addRecentApp(appId) {
+  ensureAppState(appId);
+
+  // se già presente, sposta in cima
+  const index = recentApps.indexOf(appId);
+  if (index !== -1) {
+    recentApps.splice(index, 1);
   }
-  updateDockRecent();
+  recentApps.unshift(appId);
+
+  // max 2
+  if (recentApps.length > 2) {
+    recentApps.pop();
+  }
 }
 
-function removeFromRecent(id) {
-  recentApps = recentApps.filter(x => x !== id);
+function removeFromRecent(appId) {
+  const index = recentApps.indexOf(appId);
+  if (index !== -1) {
+    recentApps.splice(index, 1);
+  }
 }
 
-function updateDockRecent() {
+function renderDockRecent() {
+  if (!dockRecent) return;
   dockRecent.innerHTML = "";
 
   if (recentApps.length === 0) {
@@ -113,62 +185,66 @@ function updateDockRecent() {
 
   dockDivider.style.display = "block";
 
-  recentApps.forEach(id => {
+  recentApps.forEach(appId => {
     const btn = document.createElement("button");
     btn.className = "dock-recent-item";
-    btn.dataset.window = id;
+    btn.dataset.appId = appId;
 
-    // choose symbol based on window
-    let symbol = "□";
-    if (id === "win-browser") symbol = "🌐";
-    else if (id === "win-files") symbol = "🗂️";
-    else if (id === "win-terminal") symbol = ">_";
-    else if (id === "win-notes") symbol = "📝";
-    else if (id === "win-about") symbol = "OS";
-    else if (id === "win-settings") symbol = "⚙️";
+    // icona in base all'app
+    let icon = "📦";
+    if (appId === "browser") icon = "🌐";
+    if (appId === "files") icon = "🗂️";
+    if (appId === "terminal") icon = ">";
+    if (appId === "settings") icon = "⚙️";
+    if (appId === "notes") icon = "📝";
+    if (appId === "about") icon = "OS";
 
-    btn.textContent = symbol;
+    btn.textContent = icon;
 
-    const dot = document.createElement("div");
-    dot.className = "dock-indicator";
-    btn.appendChild(dot);
+    // pallino verde se hidden
+    ensureAppState(appId);
+    if (appState[appId].open && appState[appId].hidden) {
+      const dot = document.createElement("div");
+      dot.className = "dock-indicator";
+      btn.appendChild(dot);
+    }
 
-    btn.addEventListener("click", () => openWindow(id));
+    btn.addEventListener("click", () => {
+      const win = getWindowByAppId(appId);
+      if (!win) return;
+      openWindow(win.id);
+    });
 
-    // context menu
-    attachContextMenuHandlers(btn, id);
+    attachContextMenuHandlers(btn, { type: "dock-recent", appId, windowId: getWindowByAppId(appId)?.id });
 
     dockRecent.appendChild(btn);
   });
 }
 
 /* ===========================
-   ICONS & DOCK
+   ICONS & DOCK FIXED
 =========================== */
 icons.forEach(icon => {
-  // locked browser: no window
-  if (icon.classList.contains("locked-browser")) {
-    icon.addEventListener("click", () => {
-      // optional feedback, left empty for clean UI
-    });
-    return;
-  }
-
   const target = icon.dataset.window;
   if (!target) return;
 
-  icon.addEventListener("dblclick", () => openWindow(target));
+  const appId = icon.dataset.appId || target.replace("win-", "");
 
+  icon.addEventListener("dblclick", () => openWindow(target));
   icon.addEventListener("click", () => {
     if (window.innerWidth <= 700) openWindow(target);
   });
+
+  attachContextMenuHandlers(icon, { type: "desktop-icon", appId, windowId: target });
 });
 
 dockItems.forEach(btn => {
   const winId = btn.dataset.window;
+  const appId = btn.dataset.appId;
+
   btn.addEventListener("click", () => openWindow(winId));
 
-  attachContextMenuHandlers(btn, winId);
+  attachContextMenuHandlers(btn, { type: "dock-main", appId, windowId: winId });
 });
 
 /* ===========================
@@ -199,11 +275,14 @@ windowsEls.forEach(win => {
   const btnMin = win.querySelector(".btn-minimize");
   const btnFull = win.querySelector(".btn-fullscreen");
   const titlebar = win.querySelector(".window-titlebar");
+  const id = win.id;
+  const appId = getAppIdFromWindow(win);
 
   if (btnClose) btnClose.addEventListener("click", () => closeWindow(win));
   if (btnMin) btnMin.addEventListener("click", () => minimizeWindow(win));
   if (btnFull) btnFull.addEventListener("click", () => win.classList.toggle("fullscreen"));
 
+  // Drag
   let dragging = false;
   let offsetX = 0;
   let offsetY = 0;
@@ -224,62 +303,8 @@ windowsEls.forEach(win => {
   });
 
   document.addEventListener("mouseup", () => dragging = false);
-});
 
-/* ===========================
-   CONTEXT MENU
-=========================== */
-function attachContextMenuHandlers(element, windowId) {
-  // right-click
-  element.addEventListener("contextmenu", e => {
-    e.preventDefault();
-    showContextMenu(e.clientX, e.clientY, windowId);
-  });
-
-  // long press on touch
-  let pressTimer = null;
-
-  element.addEventListener("touchstart", e => {
-    pressTimer = setTimeout(() => {
-      const touch = e.touches[0];
-      showContextMenu(touch.clientX, touch.clientY, windowId);
-    }, 500);
-  });
-
-  element.addEventListener("touchend", () => {
-    if (pressTimer) clearTimeout(pressTimer);
-  });
-
-  element.addEventListener("touchmove", () => {
-    if (pressTimer) clearTimeout(pressTimer);
-  });
-}
-
-function showContextMenu(x, y, windowId) {
-  ctxTargetWindowId = windowId;
-  contextMenu.style.display = "flex";
-  contextMenu.style.left = x + "px";
-  contextMenu.style.top = y + "px";
-}
-
-function hideContextMenu() {
-  contextMenu.style.display = "none";
-  ctxTargetWindowId = null;
-}
-
-ctxItems.forEach(item => {
-  item.addEventListener("click", () => {
-    if (!ctxTargetWindowId) return;
-
-    const win = document.getElementById(ctxTargetWindowId);
-    const action = item.dataset.action;
-
-    if (action === "close" && win) closeWindow(win);
-    if (action === "open") openWindow(ctxTargetWindowId);
-    if (action === "hide" && win) minimizeWindow(win);
-
-    hideContextMenu();
-  });
+  attachContextMenuHandlers(win, { type: "window", appId, windowId: id });
 });
 
 /* ===========================
@@ -345,8 +370,22 @@ function wakeFromStandby() {
 standbyOverlay.addEventListener("click", wakeFromStandby);
 
 function enterReboot() {
-  windowsEls.forEach(w => w.style.display = "none");
-  showBlack("🔄", 1500, () => playSplash(() => {}));
+  // close all windows & reset app state (tranne wallpaper)
+  windowsEls.forEach(w => {
+    w.style.display = "none";
+  });
+
+  for (const appId in appState) {
+    appState[appId].open = false;
+    appState[appId].hidden = false;
+  }
+  recentApps.splice(0, recentApps.length);
+  renderDockRecent();
+  taskbar.innerHTML = "";
+
+  showBlack("🔄", 3000, () => {
+    playSplash(() => {});
+  });
 }
 
 startPowerButtons.forEach(btn => {
@@ -370,8 +409,115 @@ function mobileMode() {
 window.addEventListener("resize", mobileMode);
 
 /* ===========================
+   CONTEXT MENU (desktop + mobile)
+=========================== */
+function showContextMenu(x, y, meta) {
+  ctxTarget = meta;
+  contextMenu.style.display = "flex";
+
+  const menuRect = contextMenu.getBoundingClientRect();
+  let posX = x;
+  let posY = y;
+
+  if (posX + menuRect.width > window.innerWidth) {
+    posX = window.innerWidth - menuRect.width - 5;
+  }
+  if (posY + menuRect.height > window.innerHeight) {
+    posY = window.innerHeight - menuRect.height - 5;
+  }
+
+  contextMenu.style.left = posX + "px";
+  contextMenu.style.top = posY + "px";
+}
+
+function hideContextMenu() {
+  contextMenu.style.display = "none";
+  ctxTarget = null;
+}
+
+function attachContextMenuHandlers(element, meta) {
+  if (!element) return;
+
+  // desktop: right-click
+  element.addEventListener("contextmenu", e => {
+    e.preventDefault();
+    e.stopPropagation();
+    showContextMenu(e.clientX, e.clientY, meta);
+  });
+
+  // mobile: long press
+  let touchTimer = null;
+  element.addEventListener("touchstart", e => {
+    touchTimer = setTimeout(() => {
+      const touch = e.touches[0];
+      showContextMenu(touch.clientX, touch.clientY, meta);
+    }, 600);
+  });
+  element.addEventListener("touchend", () => {
+    clearTimeout(touchTimer);
+  });
+}
+
+document.addEventListener("click", () => {
+  hideContextMenu();
+});
+document.addEventListener("scroll", () => {
+  hideContextMenu();
+});
+
+/* Azioni context menu */
+ctxButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (!ctxTarget) return;
+    const action = btn.dataset.action;
+    const { appId, windowId } = ctxTarget;
+    let win = windowId ? document.getElementById(windowId) : getWindowByAppId(appId);
+
+    if (!win && appId) {
+      win = getWindowByAppId(appId);
+    }
+    if (!win) {
+      hideContextMenu();
+      return;
+    }
+
+    if (action === "open") {
+      openWindow(win.id);
+    } else if (action === "hide") {
+      minimizeWindow(win);
+    } else if (action === "close") {
+      closeWindow(win);
+    }
+
+    hideContextMenu();
+  });
+});
+
+/* ===========================
+   WALLPAPER LOAD FROM LOCALSTORAGE
+=========================== */
+function applySavedWallpaper() {
+  const saved = localStorage.getItem("namixos_wallpaper");
+  if (!saved) return; // user default dal CSS
+
+  try {
+    const data = JSON.parse(saved);
+    if (data.type === "css") {
+      desktop.style.background = data.value;
+    } else if (data.type === "image") {
+      desktop.style.background = `url(${data.value}) center/cover no-repeat`;
+    }
+  } catch (e) {
+    console.warn("Wallpaper data invalid");
+  }
+}
+
+/* ===========================
    INIT
 =========================== */
 playSplash(() => {});
 blackScreen.style.display = "none";
 standbyOverlay.style.display = "none";
+
+applySavedWallpaper();
+mobileMode();
