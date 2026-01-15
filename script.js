@@ -290,9 +290,12 @@ windowsEls.forEach(win => {
     if (!dragging) return;
     win.style.left = e.clientX - offsetX + "px";
     win.style.top = e.clientY - offsetY + "px";
+    if (!dragging || e.buttons!== 1) return;
   });
 
-  document.addEventListener("mouseup", () => dragging = false);
+  document.addEventListener("mouseup", () => {
+    dragging = false;
+  };
 
   const appId = getAppIdFromWindow(win);
   attachContextMenuHandlers(win, { type: "window", appId, windowId: win.id });
@@ -397,7 +400,7 @@ function mobileMode() {
 window.addEventListener("resize", mobileMode);
 
 /* ===========================
-   CONTEXT MENU (iPHONE 12 TESTED VERSION)
+   CONTEXT MENU
 =========================== */
 function showContextMenu(x, y, meta) {
   ctxTarget = meta;
@@ -446,6 +449,7 @@ function attachContextMenuHandlers(element, meta) {
   /* DESKTOP */
   element.addEventListener("contextmenu", e => {
     e.preventDefault();
+    e.stopPropagation();
     if (canShowMenu(element)) {
       showContextMenu(e.clientX, e.clientY, meta);
       navigator.vibrate?.(10);
@@ -501,7 +505,10 @@ function attachContextMenuHandlers(element, meta) {
   element.addEventListener("touchend", () => {});
 }
 
-document.addEventListener("click", () => hideContextMenu());
+document.addEventListener("click", e => {
+  if(!contextMenu.contains(e.target)) {
+    hideContextMenu();
+  });
 document.addEventListener("scroll", () => hideContextMenu());
 
 ctxButtons.forEach(btn => {
