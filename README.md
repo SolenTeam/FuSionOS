@@ -1,4 +1,4 @@
-# FuSionOS 1.0 (Beta)
+# FuSionOS (Beta)
 
 This is a beta of Namix, an operative
 system that runs lightly on your device.
