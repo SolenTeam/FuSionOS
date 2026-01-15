@@ -295,7 +295,7 @@ windowsEls.forEach(win => {
 
   document.addEventListener("mouseup", () => {
     dragging = false;
-  };
+  });
 
   const appId = getAppIdFromWindow(win);
   attachContextMenuHandlers(win, { type: "window", appId, windowId: win.id });
