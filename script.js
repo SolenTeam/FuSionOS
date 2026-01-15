@@ -397,7 +397,7 @@ function mobileMode() {
 window.addEventListener("resize", mobileMode);
 
 /* ===========================
-   CONTEXT MENU (VERSIONE iPHONE 12)
+   CONTEXT MENU (iPHONE 12 TESTED VERSION)
 =========================== */
 function showContextMenu(x, y, meta) {
   ctxTarget = meta;
